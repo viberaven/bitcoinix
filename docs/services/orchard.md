@@ -99,6 +99,10 @@ names that Tor resolves to private addresses. Loopback mint addresses such as
 Public icon fetches also stay on the proxy, including URLs with `.local`, `.lan`,
 `.internal` or dotless hostnames.
 
+Public URL and TCP port checks also reject site-local (`fec0::/10`) and
+well-known NAT64 (`64:ff9b::/96`) IPv6 addresses, even without Tor. NAT64 can
+translate an IPv6 destination to a private IPv4 address.
+
 AI is off by default and the server enforces the switch. When enabled in Orchard's
 settings, the web assistant, active scheduled agents and the Telegram conversation
 agent can send conversation content and mint data obtained through tool calls to

@@ -14,7 +14,7 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
  			return new OrchardPublicImage(buffer, content_type || 'image/jpeg');
 --- a/src/server/modules/api/public/network-guard.spec.ts
 +++ b/src/server/modules/api/public/network-guard.spec.ts
-@@ -5,6 +5,23 @@
+@@ -5,6 +5,25 @@
  
  describe('network-guard', () => {
  	describe('assertPublicUrl', () => {
@@ -30,6 +30,8 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
 +		it.each([
 +			'::', '::1', 'fc00::1', 'fdff::1', 'fe80::1', 'febf::1',
 +			'::ffff:127.0.0.1', '::ffff:8.8.8.8', '::ffff:c0a8:101',
++			'fec0::1', 'feff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
++			'64:ff9b::a00:1', '64:ff9b::127.0.0.1', '64:ff9b::808:808', '64:ff9b::ffff:ffff',
 +		])('still rejects private/reserved and IPv4-mapped IPv6 literals (%s)', async (ip) => {
 +			await expect(assertPublicHost(ip)).rejects.toThrow('private/reserved');
 +			await expect(assertPublicUrl(`http://[${ip}]/`)).rejects.toThrow('private/reserved');
@@ -40,7 +42,7 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
  			await expect(assertPublicUrl('file:///etc/passwd')).rejects.toThrow('scheme');
 --- a/src/server/modules/api/public/network-guard.ts
 +++ b/src/server/modules/api/public/network-guard.ts
-@@ -1,116 +1,43 @@
+@@ -1,116 +1,45 @@
  /* Core Dependencies */
  import {promises as dns} from 'dns';
 +import {execFile} from 'node:child_process';
@@ -100,6 +102,8 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
 +BLOCKED_IPV6.addAddress('::1', 'ipv6'); // Loopback
 +BLOCKED_IPV6.addSubnet('fc00::', 7, 'ipv6'); // Unique local
 +BLOCKED_IPV6.addSubnet('fe80::', 10, 'ipv6'); // Link-local
++BLOCKED_IPV6.addSubnet('fec0::', 10, 'ipv6'); // Site-local
++BLOCKED_IPV6.addSubnet('64:ff9b::', 96, 'ipv6'); // NAT64 can translate to private IPv4
 +BLOCKED_IPV6.addSubnet('::ffff:0:0', 96, 'ipv6'); // IPv4-mapped IPv6
  
  /** Blocked hostnames that resolve to metadata endpoints */
@@ -183,7 +187,7 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
  }
  
  /**
-@@ -120,7 +47,8 @@
+@@ -120,7 +49,8 @@
   *
   * @throws Error if the hostname resolves to a blocked IP range
   */
@@ -193,7 +197,7 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
  	/* Block known metadata hostnames */
  	const lower = host.toLowerCase();
  	if (BLOCKED_HOSTNAMES.has(lower)) {
-@@ -140,15 +68,33 @@
+@@ -140,15 +70,33 @@
  		return null;
  	}
  
@@ -233,7 +237,7 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
  		}
  	}
  
-@@ -167,7 +113,7 @@
+@@ -167,7 +115,7 @@
   *
   * @throws Error if the URL is invalid or resolves to a blocked range
   */
@@ -242,7 +246,7 @@ Proxy public TCP probes and classify local fetch destinations as IP addresses.
  	let parsed: URL;
  	try {
  		parsed = new URL(url);
-@@ -180,5 +126,5 @@
+@@ -180,5 +128,5 @@
  		throw new Error(`Blocked: scheme '${parsed.protocol}' is not allowed`);
  	}
  
