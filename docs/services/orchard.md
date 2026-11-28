@@ -102,7 +102,7 @@ Public icon fetches also stay on the proxy, including URLs with `.local`, `.lan`
 Public URL and TCP port checks also reject site-local (`fec0::/10`),
 well-known NAT64 (`64:ff9b::/96`) and local-use translation (`64:ff9b:1::/48`)
 IPv6 addresses, even without Tor. Unlike the well-known prefix, the
-[local-use prefix](https://www.rfc-editor.org/rfc/rfc8215.html#section-3) permits
+[local-use prefix](https://www.rfc-editor.org/rfc/rfc8215.html#section-5) permits
 translation to private IPv4 destinations.
 
 AI is off by default and the server enforces the switch. When enabled in Orchard's
